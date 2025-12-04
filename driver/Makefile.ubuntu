@@ -1,0 +1,113 @@
+# Makefile.ubuntu - Standalone build for Morse Micro HaLow driver on Ubuntu/Tachyon
+#
+# Usage:
+#   make -f Makefile.ubuntu KERNEL_SRC=/path/to/kernel/source
+#   make -f Makefile.ubuntu KERNEL_SRC=~/tachyon-composer/tachyon-ubuntu-24.04-kernel
+#
+# For cross-compilation (x86_64 host -> ARM64 target):
+#   make -f Makefile.ubuntu KERNEL_SRC=... ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+
+# Driver source directory
+DRIVER_SRC := $(CURDIR)/morse_driver-1.16.4
+
+# Kernel source (must be set)
+KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
+
+# Architecture (auto-detect or override)
+ARCH ?= $(shell uname -m | sed -e 's/x86_64/x86/' -e 's/aarch64/arm64/')
+
+# Cross compiler prefix (empty for native build)
+CROSS_COMPILE ?=
+
+# Driver version
+MORSE_VERSION := "0-1.16.4-ubuntu"
+
+# Build configuration
+CONFIG_WLAN_VENDOR_MORSE := m
+CONFIG_MORSE_USB := y
+CONFIG_MORSE_SDIO := y
+CONFIG_MORSE_SPI := n
+CONFIG_MORSE_DEBUGFS := y
+CONFIG_MORSE_VENDOR_COMMAND := y
+CONFIG_MORSE_RC := y
+CONFIG_MORSE_COUNTRY := "US"
+
+# Debug settings (n for production, y for debug)
+DEBUG := n
+
+# Include paths for backport stubs
+NOSTDINC_FLAGS := \
+	-I$(DRIVER_SRC) \
+	-I$(DRIVER_SRC)/backport \
+	-include $(DRIVER_SRC)/backport/autoconf.h \
+	-include $(DRIVER_SRC)/backport/backport.h
+
+# Export config to driver Makefile
+export CONFIG_WLAN_VENDOR_MORSE
+export CONFIG_MORSE_USB
+export CONFIG_MORSE_SDIO
+export CONFIG_MORSE_SPI
+export CONFIG_MORSE_DEBUGFS
+export CONFIG_MORSE_VENDOR_COMMAND
+export CONFIG_MORSE_RC
+export CONFIG_MORSE_COUNTRY
+export DEBUG
+export MORSE_VERSION
+
+.PHONY: all modules clean install help
+
+all: modules
+
+modules:
+	@echo "Building Morse Micro HaLow driver for Ubuntu/Tachyon"
+	@echo "  KERNEL_SRC: $(KERNEL_SRC)"
+	@echo "  ARCH: $(ARCH)"
+	@echo "  CONFIG_MORSE_USB: $(CONFIG_MORSE_USB)"
+	@echo ""
+	$(MAKE) -C $(KERNEL_SRC) M=$(DRIVER_SRC) \
+		ARCH=$(ARCH) \
+		CROSS_COMPILE=$(CROSS_COMPILE) \
+		NOSTDINC_FLAGS="$(NOSTDINC_FLAGS)" \
+		CONFIG_WLAN_VENDOR_MORSE=m \
+		CONFIG_MORSE_USB=y \
+		CONFIG_MORSE_SDIO=y \
+		CONFIG_MORSE_DEBUGFS=y \
+		CONFIG_MORSE_VENDOR_COMMAND=y \
+		CONFIG_MORSE_COUNTRY="US" \
+		DEBUG=n \
+		modules
+
+clean:
+	$(MAKE) -C $(KERNEL_SRC) M=$(DRIVER_SRC) clean
+	rm -f $(DRIVER_SRC)/dot11ah/*.o $(DRIVER_SRC)/dot11ah/*.ko
+	rm -f $(DRIVER_SRC)/dot11ah/.*.cmd $(DRIVER_SRC)/dot11ah/Module.symvers
+
+install:
+	@echo "Installing kernel modules..."
+	$(MAKE) -C $(KERNEL_SRC) M=$(DRIVER_SRC) modules_install
+	depmod -a
+
+help:
+	@echo "Morse Micro HaLow Driver - Ubuntu/Tachyon Build"
+	@echo ""
+	@echo "Targets:"
+	@echo "  all/modules  - Build driver modules (morse.ko, dot11ah.ko)"
+	@echo "  clean        - Clean build artifacts"
+	@echo "  install      - Install modules to system (requires root)"
+	@echo "  help         - Show this help"
+	@echo ""
+	@echo "Variables:"
+	@echo "  KERNEL_SRC      - Path to kernel source/headers (required)"
+	@echo "  ARCH            - Target architecture (default: auto-detect)"
+	@echo "  CROSS_COMPILE   - Cross compiler prefix (e.g., aarch64-linux-gnu-)"
+	@echo "  DEBUG           - Enable debug build (y/n, default: n)"
+	@echo ""
+	@echo "Examples:"
+	@echo "  # Build for current running kernel:"
+	@echo "  make -f Makefile.ubuntu"
+	@echo ""
+	@echo "  # Build for Tachyon kernel:"
+	@echo "  make -f Makefile.ubuntu KERNEL_SRC=~/tachyon-composer/tachyon-ubuntu-24.04-kernel"
+	@echo ""
+	@echo "  # Cross-compile for ARM64:"
+	@echo "  make -f Makefile.ubuntu KERNEL_SRC=... ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-"

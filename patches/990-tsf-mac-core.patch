@@ -1,0 +1,80 @@
+Index: morse_driver-1.16.4/mac.c
+===================================================================
+--- morse_driver-1.16.4.orig/mac.c
++++ morse_driver-1.16.4/mac.c
+@@ -77,6 +77,14 @@
+ /* Max 32 for legacy BA. 8 for 1MHZ NDP BA. 16 for 2+MHZ NDP BA */
+ #define DOT11AH_BA_MAX_MPDU_PER_AMPDU	(32)
+ 
++/* Global variables for TSF synchronization */
++static u64 last_rx_hw_tsf_us = 0;
++static u64 last_rx_kernel_time_ns = 0;
++static DEFINE_SPINLOCK(tsf_sync_lock);
++
++/* Forward declaration for TSF sync function */
++static void morse_capture_rx_tsf(const struct morse_skb_rx_status *hdr_rx_status);
++
+ /* Default alpha-2 code */
+ #define USER_ASSIGNED_ALPHA "ZZ"
+ 
+@@ -5883,6 +5891,42 @@ static int morse_mac_preprocess_s1g_acti
+ 	return 0;
+ }
+ 
++/**
++ * morse_capture_rx_tsf - Capture TSF timestamp from received frames
++ * @hdr_rx_status: RX status containing hardware TSF timestamp
++ *
++ * Safely stores the hardware TSF timestamp and corresponding kernel time
++ * for clock synchronization purposes. This captures ALL received frames
++ * (data, management, beacons) to ensure updates on every packet.
++ */
++static void morse_capture_rx_tsf(const struct morse_skb_rx_status *hdr_rx_status)
++{
++	unsigned long flags;
++
++	if (!hdr_rx_status)
++		return;
++
++	spin_lock_irqsave(&tsf_sync_lock, flags);
++	last_rx_hw_tsf_us = le64_to_cpu(hdr_rx_status->rx_timestamp_us);
++	last_rx_kernel_time_ns = ktime_get_real_ns();
++	spin_unlock_irqrestore(&tsf_sync_lock, flags);
++}
++
++/**
++ * morse_get_tsf_snapshot - Get atomic snapshot of TSF values
++ * @hw_tsf_us: Output - hardware TSF in microseconds
++ * @kernel_time_ns: Output - kernel time in nanoseconds
++ */
++void morse_get_tsf_snapshot(u64 *hw_tsf_us, u64 *kernel_time_ns)
++{
++	unsigned long flags;
++
++	spin_lock_irqsave(&tsf_sync_lock, flags);
++	*hw_tsf_us = last_rx_hw_tsf_us;
++	*kernel_time_ns = last_rx_kernel_time_ns;
++	spin_unlock_irqrestore(&tsf_sync_lock, flags);
++}
++
+ static int morse_mac_process_s1g_mgmt_or_beacon(struct morse *mors,
+ 						struct ieee80211_vif *vif,
+ 						struct sk_buff *skb,
+@@ -5976,6 +6020,17 @@ void morse_mac_skb_recv(struct morse *mo
+ 	int length_11n;
+ 	struct morse_vif *mors_vif;
+ 	bool skb_needs_free = true;
++	struct ieee80211_hdr *hdr;
++
++	/* Capture TSF timestamp from DATA frames only (not management/beacons)
++	 * Management frames may have stale TSF values causing sync instability
++	 */
++	if (skb->data && skb->len >= sizeof(struct ieee80211_hdr)) {
++		hdr = (struct ieee80211_hdr *)skb->data;
++		if (ieee80211_is_data(hdr->frame_control)) {
++			morse_capture_rx_tsf(hdr_rx_status);
++		}
++	}
+ 
+ 	if (!mors->started)
+ 		goto exit;

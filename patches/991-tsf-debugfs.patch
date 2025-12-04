@@ -1,0 +1,68 @@
+Index: morse_driver-1.16.4/debug.c
+===================================================================
+--- morse_driver-1.16.4.orig/debug.c
++++ morse_driver-1.16.4/debug.c
+@@ -21,6 +21,9 @@
+ #include "watchdog.h"
+ #include "wiphy.h"
+ 
++/* External TSF sync function from mac.c */
++extern void morse_get_tsf_snapshot(u64 *hw_tsf_us, u64 *kernel_time_ns);
++
+ /*
+  * Array of configured LOG levels, indexed by the ID of the feature / module.
+  * Initialised at run-time from the 'debug_mask' module parameter.
+@@ -674,6 +677,42 @@ static const struct file_operations watc
+ 	.write = morse_debug_watchdog_write,
+ };
+ 
++/**
++ * tsf_rx_show - Show the last captured TSF and kernel time from RX
++ */
++static int tsf_rx_show(struct seq_file *m, void *v)
++{
++	u64 hw_tsf_us, kernel_time_ns;
++
++	morse_get_tsf_snapshot(&hw_tsf_us, &kernel_time_ns);
++	seq_printf(m, "TSF: %llu\n", hw_tsf_us);
++	seq_printf(m, "SYS: %llu\n", kernel_time_ns);
++	return 0;
++}
++DEFINE_SHOW_ATTRIBUTE(tsf_rx);
++
++/**
++ * tsf_current_show - Show extrapolated current TSF based on last RX capture
++ */
++static int tsf_current_show(struct seq_file *m, void *v)
++{
++	u64 last_hw_tsf_us, last_kernel_time_ns;
++	u64 current_kernel_time_ns;
++	u64 delta_ns, delta_us;
++	u64 current_tsf_us;
++
++	morse_get_tsf_snapshot(&last_hw_tsf_us, &last_kernel_time_ns);
++	current_kernel_time_ns = ktime_get_real_ns();
++	delta_ns = current_kernel_time_ns - last_kernel_time_ns;
++	delta_us = delta_ns / 1000;
++	current_tsf_us = last_hw_tsf_us + delta_us;
++
++	seq_printf(m, "TSF: %llu\n", current_tsf_us);
++	seq_printf(m, "SYS: %llu\n", current_kernel_time_ns);
++	return 0;
++}
++DEFINE_SHOW_ATTRIBUTE(tsf_current);
++
+ static ssize_t morse_debug_reset_required_read(struct file *file,
+ 					       char __user *user_buf, size_t count, loff_t *ppos)
+ {
+@@ -1150,6 +1189,10 @@ int morse_init_debug(struct morse *mors)
+ 	debugfs_create_file("reset_required", 0600, mors->debug.debugfs_phy, mors,
+ 			    &reset_required_fops);
+ 
++	debugfs_create_file("tsf_rx", 0444, mors->debug.debugfs_phy, mors, &tsf_rx_fops);
++
++	debugfs_create_file("tsf_current", 0444, mors->debug.debugfs_phy, mors, &tsf_current_fops);
++
+ #endif
+ 
+ #ifdef CONFIG_MORSE_RC

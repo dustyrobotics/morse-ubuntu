@@ -1,0 +1,81 @@
+# Morse Micro HaLow Driver for Ubuntu/Tachyon - License Information
+
+This repository contains components from multiple sources with different licenses.
+Each component retains its original license.
+
+## Repository Structure and Licensing
+
+| Directory | License | Copyright |
+|-----------|---------|-----------|
+| `driver/morse_driver-1.16.4/` | GPLv2 | Morse Micro |
+| `tools/morsecli/` | GPLv2 | Morse Micro |
+| `tools/wpa_supplicant_s1g/` | BSD-3-Clause | Jouni Malinen, Morse Micro |
+| `firmware/` | Morse Micro Binary Distribution License | Morse Micro |
+| `patches/` | GPLv2 | Morse Micro (via morse-feed) |
+| `driver/Makefile.ubuntu` | MIT | Dusty Robotics |
+| Documentation (*.md) | MIT | Dusty Robotics |
+
+## License Details
+
+### GPLv2 Components (driver, morsecli, patches)
+
+The morse_driver, morse_cli, and patches are licensed under the GNU General
+Public License version 2. Full license text is included in:
+- `driver/morse_driver-1.16.4/LICENSE`
+- `tools/morsecli/LICENSES/GPL-2.0-or-later.txt`
+
+Source code is provided in full compliance with GPLv2 requirements.
+
+### BSD-3-Clause (wpa_supplicant_s1g)
+
+The wpa_supplicant_s1g component is licensed under the BSD 3-Clause License.
+See `tools/wpa_supplicant_s1g/COPYING` for details.
+
+### Morse Micro Binary Distribution License (firmware)
+
+The firmware binary files in `firmware/` are licensed under the Morse Micro
+Binary Distribution License. Key terms:
+
+- Free to use with Morse Micro hardware products
+- May be redistributed complete and unmodified
+- Must be used solely with Morse Micro Wi-Fi HaLow chips
+- No reverse engineering or modification permitted
+
+Full license text is available in the upstream repository:
+https://github.com/MorseMicro/morse-firmware
+
+### MIT License (build system and documentation)
+
+The build system adaptations (Makefile.ubuntu) and documentation created by
+Dusty Robotics are licensed under MIT:
+
+Copyright (c) 2024 Dusty Robotics
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+## Kernel Headers
+
+The `kernel-headers/` directory contains Debian packages from Particle's
+apt repository. These are provided for build convenience and are subject
+to their original licenses (GPLv2 for Linux kernel headers).
+
+## Upstream Repositories
+
+For authoritative license information, refer to the upstream repositories:
+- https://github.com/MorseMicro/morse_driver (GPLv2)
+- https://github.com/MorseMicro/morse_cli (GPLv2)
+- https://github.com/MorseMicro/hostap (BSD-3-Clause)
+- https://github.com/MorseMicro/morse-firmware (Binary Distribution License)
+- https://github.com/MorseMicro/morse-feed (GPLv2)

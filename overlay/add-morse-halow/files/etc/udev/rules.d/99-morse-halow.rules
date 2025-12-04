@@ -1,0 +1,6 @@
+# Morse Micro HaLow USB device
+# Allow non-root users in the "netdev" group to access the device
+SUBSYSTEM=="usb", ATTR{idVendor}=="325b", ATTR{idProduct}=="8100", MODE="0664", GROUP="netdev"
+
+# Load morse module when device is plugged in
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="325b", ATTR{idProduct}=="8100", RUN+="/sbin/modprobe morse"

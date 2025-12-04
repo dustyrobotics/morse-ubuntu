@@ -1,0 +1,80 @@
+{
+  "name": "add-morse-halow",
+  "description": "Install Morse Micro HaLow (802.11ah) USB WiFi driver and tools",
+  "commands": [
+    {
+      "type": "copy-into-chroot",
+      "source": "files/lib/firmware/morse",
+      "destination": "/lib/firmware/morse",
+      "permissions": "644"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/lib/modules/dot11ah.ko",
+      "destination": "/lib/modules/dot11ah.ko",
+      "permissions": "644"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/lib/modules/morse.ko",
+      "destination": "/lib/modules/morse.ko",
+      "permissions": "644"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/usr/sbin/morse_cli",
+      "destination": "/usr/sbin/morse_cli",
+      "permissions": "755"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/usr/sbin/wpa_supplicant_s1g",
+      "destination": "/usr/sbin/wpa_supplicant_s1g",
+      "permissions": "755"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/usr/sbin/wpa_cli_s1g",
+      "destination": "/usr/sbin/wpa_cli_s1g",
+      "permissions": "755"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/usr/sbin/halow-optimize",
+      "destination": "/usr/sbin/halow-optimize",
+      "permissions": "755"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/etc/wpa_supplicant/wpa_supplicant_s1g.conf",
+      "destination": "/etc/wpa_supplicant/wpa_supplicant_s1g.conf",
+      "permissions": "600"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/etc/udev/rules.d/99-morse-halow.rules",
+      "destination": "/etc/udev/rules.d/99-morse-halow.rules",
+      "permissions": "644"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/usr/share/doc/morse-halow",
+      "destination": "/usr/share/doc/morse-halow",
+      "permissions": "644"
+    },
+    {
+      "type": "copy-into-chroot",
+      "source": "files/install-morse.sh",
+      "destination": "/tmp/install-morse.sh",
+      "permissions": "755"
+    },
+    {
+      "type": "chroot-cmd",
+      "cmd": "/tmp/install-morse.sh"
+    },
+    {
+      "type": "chroot-cmd",
+      "cmd": "rm /tmp/install-morse.sh"
+    }
+  ]
+}

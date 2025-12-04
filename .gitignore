@@ -1,0 +1,52 @@
+# Extracted kernel headers (regenerate from .deb files - see README.md)
+kernel-headers/extracted/
+
+# =============================================================================
+# Driver build artifacts (driver/morse_driver-1.16.4/)
+# =============================================================================
+driver/morse_driver-1.16.4/**/*.o
+driver/morse_driver-1.16.4/**/*.ko
+driver/morse_driver-1.16.4/**/*.mod
+driver/morse_driver-1.16.4/**/*.mod.c
+driver/morse_driver-1.16.4/**/modules.order
+driver/morse_driver-1.16.4/**/Module.symvers
+driver/morse_driver-1.16.4/**/.*.cmd
+driver/morse_driver-1.16.4/**/.tmp_versions/
+
+# =============================================================================
+# Tools build artifacts
+# =============================================================================
+# morsecli build artifacts
+tools/morsecli/**/*_cli.o
+tools/morsecli/morse_cli
+tools/morsecli/**/.pkgdir/
+tools/morsecli/**/ipkg-*/
+
+# wpa_supplicant_s1g build artifacts
+tools/wpa_supplicant_s1g/build/
+tools/wpa_supplicant_s1g/wpa_supplicant/*.o
+tools/wpa_supplicant_s1g/wpa_supplicant/wpa_supplicant
+tools/wpa_supplicant_s1g/wpa_supplicant/wpa_cli
+tools/wpa_supplicant_s1g/wpa_supplicant/wpa_passphrase
+tools/wpa_supplicant_s1g/hostapd/*.o
+tools/wpa_supplicant_s1g/hostapd/hostapd
+tools/wpa_supplicant_s1g/hostapd/hostapd_cli
+
+# =============================================================================
+# Overlay build outputs (assembled by 'make overlay')
+# =============================================================================
+# Note: We track the overlay structure but not the built binaries
+overlay/add-morse-halow/files/lib/modules/*.ko
+overlay/add-morse-halow/files/usr/sbin/morse_cli
+overlay/add-morse-halow/files/usr/sbin/wpa_supplicant_s1g
+overlay/add-morse-halow/files/usr/sbin/wpa_cli_s1g
+
+# =============================================================================
+# Editor and OS files
+# =============================================================================
+*.swp
+*.swo
+*~
+.DS_Store
+.vscode/
+.idea/

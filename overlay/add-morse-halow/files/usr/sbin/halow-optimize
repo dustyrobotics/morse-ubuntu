@@ -1,0 +1,94 @@
+#!/bin/bash
+# HaLow Latency Optimization Script for Morse Micro devices
+# Reduces latency from ~66ms to ~6ms average
+#
+# Note: morse_cli is the same as morsectrl (renamed in newer versions)
+# The 'qos' command is not available in morse_cli 1.16.4
+
+IFACE="${1:-}"
+
+# Auto-detect interface if not specified
+if [ -z "$IFACE" ] || ! ip link show "$IFACE" &>/dev/null; then
+    IFACE=$(ip link show | grep -oE 'wlx[0-9a-f]+' | head -1)
+    if [ -z "$IFACE" ]; then
+        echo "No HaLow interface found"
+        exit 1
+    fi
+fi
+
+# Get PHY name
+PHY=$(iw dev "$IFACE" info 2>/dev/null | grep wiphy | awk '{print "phy"$2}')
+
+case "${2:-optimize}" in
+    optimize|on)
+        echo "Applying latency optimizations to $IFACE ($PHY)..."
+
+        # 1. Disable Power Save (~100ms improvement)
+        iw dev "$IFACE" set power_save off 2>/dev/null
+        echo "  [✓] Power save disabled"
+
+        # 2. Disable AMPDU (packet aggregation)
+        morse_cli -i "$IFACE" ampdu disable 2>/dev/null
+        echo "  [✓] AMPDU disabled"
+
+        # 3. Minimize retries (better for real-time)
+        if [ -n "$PHY" ]; then
+            iw "$PHY" set retry short 1 long 1 2>/dev/null
+            echo "  [✓] Retries minimized"
+        fi
+
+        # 4. Small TX queue (prevents bufferbloat)
+        tc qdisc del dev "$IFACE" root 2>/dev/null
+        tc qdisc add dev "$IFACE" root pfifo limit 10 2>/dev/null
+        echo "  [✓] TX queue limited to 10 packets"
+
+        echo "Done! Latency optimizations applied."
+        ;;
+
+    reset|off)
+        echo "Resetting to defaults on $IFACE ($PHY)..."
+
+        # Re-enable power save
+        iw dev "$IFACE" set power_save on 2>/dev/null
+        echo "  [✓] Power save enabled"
+
+        # Re-enable AMPDU
+        morse_cli -i "$IFACE" ampdu enable 2>/dev/null
+        echo "  [✓] AMPDU enabled"
+
+        # Default retries
+        if [ -n "$PHY" ]; then
+            iw "$PHY" set retry short 7 long 4 2>/dev/null
+            echo "  [✓] Retries reset to defaults"
+        fi
+
+        # Remove custom qdisc
+        tc qdisc del dev "$IFACE" root 2>/dev/null
+        echo "  [✓] TX queue reset to default"
+
+        echo "Done! Settings reset to defaults."
+        ;;
+
+    status)
+        echo "=== HaLow Interface Status: $IFACE ==="
+        echo ""
+        echo "Power Save:"
+        iw dev "$IFACE" get power_save 2>/dev/null || echo "  Unknown"
+        echo ""
+        echo "TX Queue:"
+        tc qdisc show dev "$IFACE" 2>/dev/null
+        echo ""
+        echo "Connection:"
+        wpa_cli_s1g -p /var/run/wpa_supplicant -i "$IFACE" status 2>/dev/null | grep -E "^(wpa_state|ssid|freq|signal)"
+        ;;
+
+    *)
+        echo "Usage: $0 [interface] {optimize|reset|status}"
+        echo ""
+        echo "Commands:"
+        echo "  optimize  Apply latency optimizations (default)"
+        echo "  reset     Reset to default settings"
+        echo "  status    Show current settings"
+        exit 1
+        ;;
+esac
