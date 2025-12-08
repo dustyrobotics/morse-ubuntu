@@ -32,6 +32,7 @@ DRIVER_DIR := $(CURDIR)/driver
 DRIVER_SRC := $(DRIVER_DIR)/morse_driver-1.16.4
 MORSECLI_DIR := $(CURDIR)/tools/morsecli
 WPA_DIR := $(CURDIR)/tools/wpa_supplicant_s1g/wpa_supplicant
+HOSTAPD_DIR := $(CURDIR)/tools/wpa_supplicant_s1g/hostapd
 FIRMWARE_DIR := $(CURDIR)/firmware
 OVERLAY_DIR := $(CURDIR)/overlay/add-morse-halow/files
 
@@ -41,11 +42,13 @@ DOT11AH_KO := $(DRIVER_SRC)/dot11ah/dot11ah.ko
 MORSE_CLI := $(MORSECLI_DIR)/morse_cli
 WPA_SUPPLICANT := $(WPA_DIR)/wpa_supplicant
 WPA_CLI := $(WPA_DIR)/wpa_cli
+HOSTAPD := $(HOSTAPD_DIR)/hostapd_s1g
+HOSTAPD_CLI := $(HOSTAPD_DIR)/hostapd_cli_s1g
 
 # Parallel jobs (override with make -jN or JOBS=N)
 JOBS ?= $(shell nproc)
 
-.PHONY: all driver tools morsecli wpa_supplicant overlay clean clean-driver clean-tools help check-deps check-headers
+.PHONY: all driver tools morsecli wpa_supplicant hostapd overlay clean clean-driver clean-tools help check-deps check-headers
 
 # Default target
 all: check-headers driver tools
@@ -55,6 +58,7 @@ all: check-headers driver tools
 	@echo "                  $(DOT11AH_KO)"
 	@echo "  morse_cli:      $(MORSE_CLI)"
 	@echo "  wpa_supplicant: $(WPA_SUPPLICANT)"
+	@echo "  hostapd:        $(HOSTAPD)"
 	@echo ""
 	@echo "Run 'make overlay' to assemble the deployment overlay."
 
@@ -97,7 +101,7 @@ $(MORSE_KO): FORCE
 #
 # Tools build
 #
-tools: morsecli wpa_supplicant
+tools: morsecli wpa_supplicant hostapd
 
 morsecli: $(MORSE_CLI)
 
@@ -127,6 +131,19 @@ $(WPA_SUPPLICANT): FORCE
 	@ls -lh $(WPA_SUPPLICANT) $(WPA_CLI)
 	@file $(WPA_SUPPLICANT)
 
+hostapd: $(HOSTAPD)
+
+$(HOSTAPD): FORCE
+	@echo "Building hostapd_s1g..."
+	PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig \
+	$(MAKE) -C $(HOSTAPD_DIR) \
+		CC=$(CC) \
+		EXTRA_CFLAGS="-Wno-deprecated-declarations" \
+		-j$(JOBS)
+	@echo "hostapd_s1g built:"
+	@ls -lh $(HOSTAPD) $(HOSTAPD_CLI)
+	@file $(HOSTAPD)
+
 #
 # Overlay assembly
 #
@@ -144,6 +161,8 @@ overlay: all
 	cp $(MORSE_CLI) $(OVERLAY_DIR)/usr/sbin/
 	cp $(WPA_SUPPLICANT) $(OVERLAY_DIR)/usr/sbin/wpa_supplicant_s1g
 	cp $(WPA_CLI) $(OVERLAY_DIR)/usr/sbin/wpa_cli_s1g
+	cp $(HOSTAPD) $(OVERLAY_DIR)/usr/sbin/hostapd_s1g
+	cp $(HOSTAPD_CLI) $(OVERLAY_DIR)/usr/sbin/hostapd_cli_s1g
 	@echo ""
 	@echo "Overlay assembled in $(OVERLAY_DIR)"
 	@echo "Contents:"
@@ -173,6 +192,7 @@ clean-tools:
 	@echo "Cleaning tools build artifacts..."
 	-$(MAKE) -C $(MORSECLI_DIR) clean 2>/dev/null || true
 	-$(MAKE) -C $(WPA_DIR) clean 2>/dev/null || true
+	-$(MAKE) -C $(HOSTAPD_DIR) clean 2>/dev/null || true
 
 #
 # Help
@@ -183,9 +203,10 @@ help:
 	@echo "Targets:"
 	@echo "  all            Build driver and tools (default)"
 	@echo "  driver         Build kernel modules (morse.ko, dot11ah.ko)"
-	@echo "  tools          Build morse_cli and wpa_supplicant_s1g"
+	@echo "  tools          Build morse_cli, wpa_supplicant_s1g, and hostapd_s1g"
 	@echo "  morsecli       Build morse_cli only"
 	@echo "  wpa_supplicant Build wpa_supplicant_s1g only"
+	@echo "  hostapd        Build hostapd_s1g only"
 	@echo "  overlay        Assemble deployment overlay from built artifacts"
 	@echo "  clean          Clean all build artifacts"
 	@echo "  check-deps     Verify build dependencies are installed"

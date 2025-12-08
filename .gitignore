@@ -50,3 +50,4 @@ overlay/add-morse-halow/files/usr/sbin/wpa_cli_s1g
 .DS_Store
 .vscode/
 .idea/
+*.tar.gz
